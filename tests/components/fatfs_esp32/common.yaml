@@ -1,0 +1,6 @@
+external_components:
+  - source: github://pr#11093
+    components: ["fatfs"]
+
+fatfs:
+  - platform: fatfs_esp32
