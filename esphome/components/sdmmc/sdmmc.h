@@ -50,9 +50,9 @@ class SdMMC : public PollingComponent, FileProvider {
   void set_attr(std::string path, uint8_t attr_name, bool attr) override;
   FileObj *open_file(std::string path, uint8_t mode) override;
   DirObj *open_dir(std::string path) override;
-  uint8_t rename(std::string from_path, std::string to_path) override;
-  uint8_t del(std::string path) override;
-  uint8_t mk_dir(std::string path) override;
+  bool rename(std::string from_path, std::string to_path) override;
+  bool del(std::string path) override;
+  bool mk_dir(std::string path) override;
   uint8_t error() override;
   const char *error_str() override;
 

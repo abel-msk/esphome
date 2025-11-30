@@ -106,18 +106,18 @@ DirObj *SdMMC::open_dir(std::string path) {
   return dir;
 }
 
-uint8_t SdMMC::rename(std::string from_path, std::string to_path) {
+bool SdMMC::rename(std::string from_path, std::string to_path) {
   last_err_ = f_rename(from_path.c_str(), to_path.c_str());
-  return last_err_;
+  return last_err_ == FR_OK;
 }
 
-uint8_t SdMMC::del(std::string path) {
+bool SdMMC::del(std::string path) {
   last_err_ = f_unlink(path.c_str());
-  return last_err_;
+  return last_err_ == FR_OK;
 }
-uint8_t SdMMC::mk_dir(std::string path) {
+bool SdMMC::mk_dir(std::string path) {
   last_err_ = f_mkdir(path.c_str());
-  return last_err_;
+  return last_err_ == FR_OK;
 }
 uint8_t SdMMC::error() { return last_err_; }
 
