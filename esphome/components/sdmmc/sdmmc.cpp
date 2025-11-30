@@ -9,16 +9,12 @@ static const char *TAG = "sdmmc";
 SdMMC::SdMMC() { this->mmc_io_ = new SdmmcIO(); }
 
 void SdMMC::setup() {
-  this->mmc_io_->set_clk_pin(clk_pin_->get_pin() != NULL ? static_cast<gpio_num_t>(clk_pin_->get_pin()) : GPIO_NUM_NC);
-  this->mmc_io_->set_cmd_pin(cmd_pin_->get_pin() != NULL ? static_cast<gpio_num_t>(cmd_pin_->get_pin()) : GPIO_NUM_NC);
-  this->mmc_io_->set_data0_pin(data0_pin_->get_pin() != NULL ? static_cast<gpio_num_t>(data0_pin_->get_pin())
-                                                             : GPIO_NUM_NC);
-  this->mmc_io_->set_data1_pin(data1_pin_->get_pin() != NULL ? static_cast<gpio_num_t>(data1_pin_->get_pin())
-                                                             : GPIO_NUM_NC);
-  this->mmc_io_->set_data2_pin(data2_pin_->get_pin() != NULL ? static_cast<gpio_num_t>(data2_pin_->get_pin())
-                                                             : GPIO_NUM_NC);
-  this->mmc_io_->set_data3_pin(data3_pin_->get_pin() != NULL ? static_cast<gpio_num_t>(data3_pin_->get_pin())
-                                                             : GPIO_NUM_NC);
+  this->mmc_io_->set_clk_pin(clk_pin_ != NULL ? static_cast<gpio_num_t>(clk_pin_->get_pin()) : GPIO_NUM_NC);
+  this->mmc_io_->set_cmd_pin(cmd_pin_ != NULL ? static_cast<gpio_num_t>(cmd_pin_->get_pin()) : GPIO_NUM_NC);
+  this->mmc_io_->set_data0_pin(data0_pin_ != NULL ? static_cast<gpio_num_t>(data0_pin_->get_pin()) : GPIO_NUM_NC);
+  this->mmc_io_->set_data1_pin(data1_pin_ != NULL ? static_cast<gpio_num_t>(data1_pin_->get_pin()) : GPIO_NUM_NC);
+  this->mmc_io_->set_data2_pin(data2_pin_ != NULL ? static_cast<gpio_num_t>(data2_pin_->get_pin()) : GPIO_NUM_NC);
+  this->mmc_io_->set_data3_pin(data3_pin_ != NULL ? static_cast<gpio_num_t>(data3_pin_->get_pin()) : GPIO_NUM_NC);
   this->mmc_io_->set_bus_width(bus_w_1bit ? 1 : 4);
   bool ret = this->mmc_io_->init();
   // this->pdrv_ = this->mmc_io_->get_pdrv();
@@ -89,12 +85,14 @@ bool SdMMC::get_attr(std::string path, uint8_t attr_name) {
       break;
     case ATTR_PROTECTED:
       break;
-    default:
-      last_err_ = FR_INVALID_PARAMETER;
-      return false;
   }
+  last_err_ = FR_INVALID_PARAMETER;
+  return false;
 }
-// void set_attr(std::string path, uint8_t attr_name, bool attr) override;
+
+void SdMMC::set_attr(std::string path, uint8_t attr_name, bool attr) {
+  ESP_LOGD(TAG, "set_attr, path=%s, attr=%d", path.c_str(), attr_name);
+}
 
 FileObj *SdMMC::open_file(std::string path, uint8_t mode) {
   File *fl = new File(path, mode);

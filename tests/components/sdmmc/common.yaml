@@ -1,0 +1,5 @@
+sdmmc:
+  cmd_pin: $cmd_pin
+  clk_pin: $clk_pin
+  mode_1bit: $mode_1bit
+  data0_pin: $data0_pin

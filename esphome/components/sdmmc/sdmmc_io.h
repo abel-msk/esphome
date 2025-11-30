@@ -7,7 +7,7 @@
 #include "driver/sdmmc_host.h"
 // #include "driver/sdmmc_types.h"  //  Req for card_int_struct
 #include "ff.h"
-// #include "esp_vfs_fat.h"
+#include "esp_vfs_fat.h"
 
 #if defined(USE_ARDUINO)
 #include "dirent.h"

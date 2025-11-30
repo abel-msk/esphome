@@ -26,6 +26,9 @@ CONF_DATA3_PIN = "data3_pin"
 CONF_MODE_1BIT = "mode_1bit"
 CONF_POWER_CTRL_PIN = "power_ctrl_pin"
 
+CODEOWNERS = ["@abel-msk"]
+AUTO_LOAD = ["storage"]
+
 sdmmc_component_ns = cg.esphome_ns.namespace("sdmmc")
 SdMmc = sdmmc_component_ns.class_("SdMMC", cg.PollingComponent, storage.FileProvider)
 
@@ -50,13 +53,13 @@ def validate_raw_data(value):
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(SdMmc),
-        cv.Required(CONF_CLK_PIN): pins.internal_gpio_output_pin_number,
-        cv.Required(CONF_CMD_PIN): pins.internal_gpio_output_pin_number,
-        cv.Required(CONF_DATA0_PIN): pins.internal_gpio_pin_number,
-        cv.Optional(CONF_DATA1_PIN): pins.internal_gpio_pin_number,
-        cv.Optional(CONF_DATA2_PIN): pins.internal_gpio_pin_number,
-        cv.Optional(CONF_DATA3_PIN): pins.internal_gpio_pin_number,
         cv.Optional(CONF_MODE_1BIT, default=False): cv.boolean,
+        cv.Required(CONF_CLK_PIN): pins.internal_gpio_output_pin_schema,
+        cv.Required(CONF_CMD_PIN): pins.internal_gpio_output_pin_schema,
+        cv.Required(CONF_DATA0_PIN): pins.internal_gpio_output_pin_schema,
+        cv.Optional(CONF_DATA1_PIN): pins.internal_gpio_output_pin_schema,
+        cv.Optional(CONF_DATA2_PIN): pins.internal_gpio_output_pin_schema,
+        cv.Optional(CONF_DATA3_PIN): pins.internal_gpio_output_pin_schema,
     }
 ).extend(cv.polling_component_schema("10s"))
 
@@ -78,14 +81,21 @@ async def to_code(config):
     await cg.register_component(var, config)
 
     cg.add(var.set_mode_1bit(config[CONF_MODE_1BIT]))
-    cg.add(var.set_clk_pin(config[CONF_CLK_PIN]))
-    cg.add(var.set_cmd_pin(config[CONF_CMD_PIN]))
-    cg.add(var.set_data0_pin(config[CONF_DATA0_PIN]))
+
+    clk_pin = await cg.gpio_pin_expression(config[CONF_CLK_PIN])
+    cg.add(var.set_clk_pin(clk_pin))
+    cmd_pin = await cg.gpio_pin_expression(config[CONF_CMD_PIN])
+    cg.add(var.set_cmd_pin(cmd_pin))
+    d0_pin = await cg.gpio_pin_expression(config[CONF_DATA0_PIN])
+    cg.add(var.set_data0_pin(d0_pin))
 
     if not config[CONF_MODE_1BIT]:
-        cg.add(var.set_data1_pin(config[CONF_DATA1_PIN]))
-        cg.add(var.set_data2_pin(config[CONF_DATA2_PIN]))
-        cg.add(var.set_data3_pin(config[CONF_DATA3_PIN]))
+        d1_pin = await cg.gpio_pin_expression(config[CONF_DATA1_PIN])
+        cg.add(var.set_data1_pin(d1_pin))
+        d2_pin = await cg.gpio_pin_expression(config[CONF_DATA2_PIN])
+        cg.add(var.set_data2_pin(d2_pin))
+        d3_pin = await cg.gpio_pin_expression(config[CONF_DATA3_PIN])
+        cg.add(var.set_data3_pin(d3_pin))
 
 
 # SD_MMC_PATH_ACTION_SCHEMA = cv.Schema(

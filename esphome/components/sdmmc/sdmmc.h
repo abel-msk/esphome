@@ -31,6 +31,7 @@ class Dir;
 
 class SdMMC : public PollingComponent, FileProvider {
  public:
+  SdMMC();
   void set_clk_pin(InternalGPIOPin *pin) { clk_pin_ = pin; };
   void set_cmd_pin(InternalGPIOPin *pin) { cmd_pin_ = pin; };
   void set_data0_pin(InternalGPIOPin *pin) { data0_pin_ = pin; };
