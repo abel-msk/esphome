@@ -27,34 +27,24 @@ void SdMMC::setup() {
 }
 
 void SdMMC::update() {
-  // if ((!this->drv_->is_card()) || (this->get_state() != SD_SLOT_ST_MOUNT)) {
-  //   this->set_state(SD_SLOT_ST_EMPTY);
-  //   fs_ = NULL;
-  //   if (this->drv_->attach_card()) {
-  //     this->set_state(SD_SLOT_ST_CARD);
-  //     card_present_ = true;
-  //     if (this->drv_->mount(path_, false)) {
-  //       this->set_state(SD_SLOT_ST_MOUNT);
-  //     } else {
-  //       ESP_LOGW(TAG, "Seems card present but cannot mount. %d", this->drv_->get_last_err());
-  //     }
-  //   } else {  // attach_card
-  //     card_present_ = false;
-  //   }
-  // }
+  std::string dn = std::string("/");
+  DirObj *dir = this->open_dir(dn);
+  std::string fn = dir->next();
+  while (!fn.empty()) {
+    ESP_LOGD(TAG, "fn: %s", fn.c_str());
+  }
 }
 
 void SdMMC::dump_config() {
-  ESP_LOGD(TAG, "SD MMC config");
-  ESP_LOGCONFIG(" 1bit bus: ", YESNO(bus_w_1bit));
-  ESP_LOGCONFIG(" 4bit bus: ", YESNO(!bus_w_1bit));
+  ESP_LOGCONFIG(TAG, "SD MMC config:");
+  ESP_LOGCONFIG(TAG, " 1bit bus: ", YESNO(bus_w_1bit));
+  ESP_LOGCONFIG(TAG, " 4bit bus: ", YESNO(!bus_w_1bit));
   LOG_PIN("  CLK Pin: ", clk_pin_);
-  LOG_PIN("  CLK Pin: ", clk_pin_);
-  LOG_PIN("  CLK Pin: ", cmd_pin_);
-  LOG_PIN("  CLK Pin: ", data0_pin_);
-  LOG_PIN("  CLK Pin: ", data1_pin_);
-  LOG_PIN("  CLK Pin: ", data2_pin_);
-  LOG_PIN("  CLK Pin: ", data3_pin_);
+  LOG_PIN("  CMD Pin: ", cmd_pin_);
+  LOG_PIN("  Data 0 pin: ", data0_pin_);
+  LOG_PIN("  Data 1 pin: ", data1_pin_);
+  LOG_PIN("  Data 2 pin: ", data2_pin_);
+  LOG_PIN("  Data 3 pin: ", data3_pin_);
 }
 
 bool SdMMC::is_dir(std::string path) {
