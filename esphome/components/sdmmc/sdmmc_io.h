@@ -44,7 +44,7 @@ class SdmmcIO {
   SdmmcIO();
 
   void set_bus_width(uint8_t);
-  void set_bus_slot(uint8_t);
+  // void set_bus_slot(uint8_t);
 
   void set_clk_pin(gpio_num_t);
   void set_cmd_pin(gpio_num_t);

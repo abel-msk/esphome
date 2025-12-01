@@ -10,6 +10,8 @@ namespace esphome {
 namespace sdmmc {
 using namespace esphome::storage;
 
+static const char *TAG = "sdmmc_file";
+
 const char *fs_errstr(uint8_t errnum) {
   const char *fs_err2str[] = {"(0) Succeeded",
                               "(1) A hard error occurred in the low level disk I/O layer",
@@ -111,7 +113,10 @@ const char *File::error_str() { return fs_errstr(last_err_); }
 /*  ------------------------------------------------------------------
  */
 
-Dir::Dir(std::string path) { last_err_ = f_opendir(&dptr_, path.c_str()); }
+Dir::Dir(std::string path) {
+  ESP_LOGV(TAG, "Open dir %s", path.c_str());
+  last_err_ = f_opendir(&dptr_, path.c_str());
+}
 /*  ------------------------------------------------------------------
  */
 Dir::~Dir() { f_closedir(&dptr_); }
@@ -120,8 +125,10 @@ Dir::~Dir() { f_closedir(&dptr_); }
 std::string Dir::next() {
   FILINFO finfo_ptr;
   last_err_ = f_readdir(&dptr_, &finfo_ptr);
+  ESP_LOGV(TAG, "next name: %s", finfo_ptr.fname);
+
   if (finfo_ptr.fname[0] == 0) {
-    return std::string();  //  Mean end of list
+    return std::string("");  //  Mean end of list
   } else {
     return std::string(finfo_ptr.fname);
   }

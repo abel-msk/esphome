@@ -15,30 +15,61 @@ void SdMMC::setup() {
   this->mmc_io_->set_data1_pin(data1_pin_ != NULL ? static_cast<gpio_num_t>(data1_pin_->get_pin()) : GPIO_NUM_NC);
   this->mmc_io_->set_data2_pin(data2_pin_ != NULL ? static_cast<gpio_num_t>(data2_pin_->get_pin()) : GPIO_NUM_NC);
   this->mmc_io_->set_data3_pin(data3_pin_ != NULL ? static_cast<gpio_num_t>(data3_pin_->get_pin()) : GPIO_NUM_NC);
-  this->mmc_io_->set_bus_width(bus_w_1bit ? 1 : 4);
+  this->mmc_io_->set_bus_width(bus_w_1bit_ ? 1 : 4);
   bool ret = this->mmc_io_->init();
+  ESP_LOGD(TAG, "sdmmc init : %s", ret ? "TRUE" : "FALSE");
   // this->pdrv_ = this->mmc_io_->get_pdrv();
   if (ret) {
+    // this->mmc_io_->init_slot();
     card_status_ = this->mmc_io_->init_card();
+    ESP_LOGD(TAG, "sdmmc init_card rc=%d", card_status_);
     if (card_status_ == SdCardStatus::RET_STATUS_OK) {
       fs_ = this->mmc_io_->mount(mount_point_);
+      ESP_LOGD(TAG, "mount %s", fs_ != NULL ? "TRUE" : "FALSE");
     }
   }
 }
 
+/** *****************************************************************************
+ *
+ * @brief   Chack  is card present.
+ *
+ */
 void SdMMC::update() {
-  std::string dn = std::string("/");
-  DirObj *dir = this->open_dir(dn);
-  std::string fn = dir->next();
-  while (!fn.empty()) {
-    ESP_LOGD(TAG, "fn: %s", fn.c_str());
+  ESP_LOGD(TAG, "FS Mounted %s", fs_ != NULL ? "TRUE" : "FALSE");
+
+#ifdef DO_CARD_TEST
+  this->fat_test();
+#endif
+
+  if (fs_ != NULL) {
+    card_status_ = this->mmc_io_->get_disk_status();
+    if (card_status_ != SdCardStatus::RET_STATUS_OK) {
+      this->mmc_io_->unmount();
+      fs_ = NULL;
+      ESP_LOGD(TAG, "No Card. FS Unmounted");
+      this->mmc_io_->init_card();
+    } else {
+      ESP_LOGV(TAG, "Card status OK");
+    }
+  } else {
+    card_status_ = this->mmc_io_->init_card();
+    if (card_status_ == SdCardStatus::RET_STATUS_OK) {
+      fs_ = this->mmc_io_->mount(mount_point_);
+      ESP_LOGD(TAG, "Card Present. FS Mounted ? %s", fs_ != NULL ? "TRUE" : "FALSE");
+    }
   }
 }
 
+/** *****************************************************************************
+ *
+ * @brief Printing out config
+ *
+ */
+
 void SdMMC::dump_config() {
   ESP_LOGCONFIG(TAG, "SD MMC config:");
-  ESP_LOGCONFIG(TAG, " 1bit bus: ", YESNO(bus_w_1bit));
-  ESP_LOGCONFIG(TAG, " 4bit bus: ", YESNO(!bus_w_1bit));
+  ESP_LOGCONFIG(TAG, "  bus width: %s", bus_w_1bit_ ? "1 bit" : "4bit");
   LOG_PIN("  CLK Pin: ", clk_pin_);
   LOG_PIN("  CMD Pin: ", cmd_pin_);
   LOG_PIN("  Data 0 pin: ", data0_pin_);
@@ -46,6 +77,34 @@ void SdMMC::dump_config() {
   LOG_PIN("  Data 2 pin: ", data2_pin_);
   LOG_PIN("  Data 3 pin: ", data3_pin_);
 }
+
+/** *****************************************************************************
+ *
+ * @brief  List root directory. For example or test purposes.
+ *
+ */
+void SdMMC::fat_test() {
+  if (fs_ != NULL) {
+    std::string dn = std::string("/");
+    DirObj *dir = this->open_dir(dn);
+    if (this->last_err_ != FR_OK) {
+      ESP_LOGD(TAG, "Open dir error: %s", this->error_str());
+    } else {
+      std::string fn = dir->next();
+      ESP_LOGD(TAG, "First fn: %s", fn.c_str());
+      while (!fn.empty()) {
+        ESP_LOGD(TAG, "fn: %s", fn.c_str());
+        fn = dir->next();
+      }
+    }
+  }
+}
+
+/** *****************************************************************************
+ *
+ * @brief Virtual function definition
+ *
+ */
 
 bool SdMMC::is_dir(std::string path) {
   last_err_ = f_stat(path.c_str(), &finfo);

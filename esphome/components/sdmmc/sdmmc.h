@@ -38,7 +38,7 @@ class SdMMC : public PollingComponent, FileProvider {
   void set_data1_pin(InternalGPIOPin *pin) { data1_pin_ = pin; };
   void set_data2_pin(InternalGPIOPin *pin) { data2_pin_ = pin; };
   void set_data3_pin(InternalGPIOPin *pin) { data3_pin_ = pin; };
-  void set_mode_1bit(bool mode) { bus_w_1bit = mode; };
+  void set_mode_1bit(bool mode) { bus_w_1bit_ = mode; };
 
   void setup() override;
   void update() override;
@@ -56,6 +56,8 @@ class SdMMC : public PollingComponent, FileProvider {
   uint8_t error() override;
   const char *error_str() override;
 
+  void fat_test();
+
  protected:
   InternalGPIOPin *clk_pin_ = {nullptr};
   InternalGPIOPin *cmd_pin_ = {nullptr};
@@ -63,7 +65,7 @@ class SdMMC : public PollingComponent, FileProvider {
   InternalGPIOPin *data1_pin_ = {nullptr};
   InternalGPIOPin *data2_pin_ = {nullptr};
   InternalGPIOPin *data3_pin_ = {nullptr};
-  bool bus_w_1bit = true;
+  bool bus_w_1bit_ = true;
   FILINFO finfo;
   uint8_t last_err_ = 0;
   SdmmcIO *mmc_io_ = {nullptr};

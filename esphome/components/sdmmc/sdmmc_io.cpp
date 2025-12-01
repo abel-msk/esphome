@@ -26,6 +26,8 @@
 #include "ff.h"
 #endif
 
+#define SDMMC_SLOT_NUM 1
+
 namespace esphome {
 namespace sdmmc {
 
@@ -85,7 +87,8 @@ SdmmcIO::SdmmcIO() {
   this->mount_config_->max_files = 5;
   this->mount_config_->allocation_unit_size = 16 * 1024;
 }
-void SdmmcIO::set_bus_slot(uint8_t slot) { this->bus_slot_ = slot; }
+
+// void SdmmcIO::set_bus_slot(uint8_t slot) { this->bus_slot_ = slot; }
 void SdmmcIO::set_bus_width(uint8_t bw) { this->spi_bus_width_ = bw; }
 
 // void SdmmcIO::set_wp_pin(gpio_num_t pin) { this->wp_pin_ = pin; }
@@ -113,7 +116,7 @@ bool SdmmcIO::init() {
   uint8_t slot_num;
   uint8_t pdrv;
 
-  // host_config->max_freq_khz = SDMMC_FREQ_HIGHSPEED;
+  this->host_config_->max_freq_khz = SDMMC_FREQ_HIGHSPEED;
   // rc = (*host_config->init)();
 
   rc = sdmmc_host_init();
@@ -137,22 +140,22 @@ bool SdmmcIO::init() {
   //   Define bus connection pins
   //
 
-  // this->slot_config_->flags = 0;
+  this->slot_config_->flags = 0;
   this->slot_config_->flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
   this->slot_config_->width = this->spi_bus_width_;
   // if (this->wp_pin_ != GPIO_NUM_NC) {
   //   this->slot_config_->wp = static_cast<gpio_num_t>(this->wp_pin_);
   //   // gpio_set_pull_mode(this->slot_config_->wp , GPIO_PULLUP_ONLY);
   // } else
-  //   this->slot_config_->wp = SDMMC_SLOT_NO_WP;
+  this->slot_config_->wp = SDMMC_SLOT_NO_WP;
 
   // if (this->cd_pin_ != GPIO_NUM_NC) {
   //   this->slot_config_->cd = static_cast<gpio_num_t>(this->cd_pin_);
   //   // gpio_set_pull_mode(slot_config->cd , GPIO_PULLUP_ONLY);
   // } else
-  //   this->slot_config_->cd = SDMMC_SLOT_NO_CD;
+  this->slot_config_->cd = SDMMC_SLOT_NO_CD;
 
-#ifdef SOC_SDMMC_USE_GPIO_MATRIX
+  // #ifdef SOC_SDMMC_USE_GPIO_MATRIX
   if ((this->clk_pin_ == GPIO_NUM_NC) || (this->cmd_pin_ == GPIO_NUM_NC) || (this->data0_pin_ == GPIO_NUM_NC)) {
     last_err_ = ESP_ERR_INVALID_ARG;
     ESP_LOGE(TAG, "Init sdmmc. clk_pin, cmd_pin, data0_pin must be defined.");
@@ -172,12 +175,12 @@ bool SdmmcIO::init() {
       this->slot_config_->d3 = this->data3_pin_;
     }
   }
+
   //
   //  Init slot
   //
-
   // slot_num = this->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
-  slot_num = SDMMC_HOST_SLOT_1;
+  slot_num = SDMMC_SLOT_NUM;
   rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
     last_err_ = rc;
@@ -188,14 +191,14 @@ bool SdmmcIO::init() {
   this->host_config_->slot = slot_num;
   this->pdrv_ = pdrv;
   return true;
-#else
-  return false;
-#endif
+  // #else
+  //   return false;
+  // #endif
 }
 
 /**********************************************************************
  *
- * @brief  Return low level priver num
+ * @brief  Return low level driver num
  *
  * @return uint8_t
  */
@@ -203,20 +206,20 @@ uint8_t SdmmcIO::get_pdrv() { return this->pdrv_; }
 
 /**********************************************************************
  *
- * @brief
+ * @brief Renitialize chip MMC bus slot
  *
  * @return true
  * @return false
  */
 bool SdmmcIO::init_slot() {
-  uint8_t slot_num = this->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
+  uint8_t slot_num = SDMMC_SLOT_NUM;
   esp_err_t rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
     last_err_ = rc;
     ESP_LOGE(TAG, "Init slot. %s", esp_err_to_name(last_err_));
     return false;
   }
-  ESP_LOGI(TAG, "Reset slot inicialization, slot %d, width %d", slot_num, this->slot_config_->width);
+  ESP_LOGD(TAG, "Reset slot inicialization, slot %d, width %d", slot_num, this->slot_config_->width);
   this->host_config_->slot = slot_num;
   return true;
 }
@@ -241,7 +244,7 @@ SdCardStatus SdmmcIO::get_disk_status() {  //  is_card
 
 /**********************************************************************
  *
- * @brief
+ * @brief  Initialize card I/O
  *
  * @return init_status_t
  */
@@ -330,7 +333,7 @@ void SdmmcIO::unmount() {
   }
 
   //  Reinit slot
-  uint8_t slot_num = this->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
+  uint8_t slot_num = this->bus_slot_ == SDMMC_SLOT_NUM;
   rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
     last_err_ = rc;
@@ -397,6 +400,7 @@ bool SdmmcIO::format() {
   //   const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, alloc_unit_size};
   //   res = f_mkfs(drv, &opt, workbuf, workbuf_size);
   // #endif
+
   if (res != FR_OK) {
     last_err_ = res;
     ESP_LOGE(TAG, "mkfs err. rc=%d", res);
