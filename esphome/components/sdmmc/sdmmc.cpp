@@ -106,6 +106,8 @@ void SdMMC::fat_test() {
  *
  */
 
+bool SdMMC::is_ready() { return fs_ != NULL; }
+
 bool SdMMC::is_dir(std::string path) {
   last_err_ = f_stat(path.c_str(), &finfo);
   if (last_err_ == FR_OK) {

@@ -43,7 +43,7 @@ class SdMMC : public PollingComponent, FileProvider {
   void setup() override;
   void update() override;
   void dump_config() override;
-
+  bool is_ready() override;
   bool is_dir(std::string path) override;
   size_t get_size(std::string path) override;
   bool get_attr(std::string path, uint8_t attr_name) override;
