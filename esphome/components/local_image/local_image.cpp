@@ -57,7 +57,11 @@ void LocalImage::dump_config() {
   ESP_LOGCONFIG(TAG, "   Path: %d", this->path_.c_str());
 };
 
-void LocalImage::setup() { if (this->provider_->get_attr) };
+void LocalImage::setup() {
+  if (this->provider_->is_ready()) {
+    this->load_image();
+  }
+};
 
 void LocalImage::set_path(const std::string &path) { this->path_ = path; }
 
