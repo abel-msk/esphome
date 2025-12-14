@@ -25,7 +25,7 @@ from esphome.const import (
 )
 
 AUTO_LOAD = ["image", "storage"]
-DEPENDENCIES = ["display", "storage"]
+DEPENDENCIES = ["display"]
 CODEOWNERS = ["@abel-msk"]
 MULTI_CONF = True
 
