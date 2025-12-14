@@ -1,4 +1,5 @@
 sdmmc:
+  id: storage_1
   cmd_pin: $cmd_pin
   clk_pin: $clk_pin
   mode_1bit: $mode_1bit

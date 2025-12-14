@@ -29,7 +29,7 @@ using fsys_t = FATFS;
 class File;
 class Dir;
 
-class SdMMC : public PollingComponent, FileProvider {
+class SdMMC : public PollingComponent, public FileProvider {
  public:
   SdMMC();
   void set_clk_pin(InternalGPIOPin *pin) { clk_pin_ = pin; };
