@@ -9,7 +9,7 @@ namespace local_image {
 static const char *const TAG = "online_image.decoder";
 
 bool ImageDecoder::set_size(int width, int height) {
-  bool success = this->image_->resize_(width, height) > 0;
+  bool success = this->image_->create_image_buffer(width, height) > 0;
   this->x_scale_ = static_cast<double>(this->image_->buffer_width_) / width;
   this->y_scale_ = static_cast<double>(this->image_->buffer_height_) / height;
   return success;

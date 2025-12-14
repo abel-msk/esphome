@@ -77,7 +77,7 @@ void LocalImage::draw(int x, int y, display::Display *display, Color color_on, C
   }
 }
 
-void LocalImage::free_source_mem() {
+void LocalImage::free_source_buffer_() {
   if (source_buffer_ != nullptr) {
     this->allocator_.deallocate(this->source_buffer_, this->source_size_);
     this->source_buffer_ == nullptr;
@@ -90,7 +90,7 @@ void LocalImage::free_source_mem() {
   }
 }
 
-void LocalImage::release_() {
+void LocalImage::free_image_buffer_() {
   if (this->buffer_) {
     ESP_LOGV(TAG, "Deallocating image buffer...");
     this->allocator_.deallocate(this->buffer_, this->get_buffer_size_());
@@ -103,21 +103,35 @@ void LocalImage::release_() {
   }
 }
 
-size_t LocalImage::resize_(int width_in, int height_in) {
+// size_t LocalImage::create_image_buffer_(size_t new_size) {
+//   ESP_LOGD(TAG, "Allocating new buffer of %zu bytes", new_size);
+//     this->buffer_ = this->allocator_.allocate(new_size);
+//     if (this->buffer_ == nullptr) {
+//       ESP_LOGE(TAG, "allocation of %zu bytes failed. Biggest block in heap: %zu Bytes", new_size,
+//               this->allocator_.get_max_free_block_size());
+//       this->last_error_ = ErrorCode::NO_MEM;
+//       return 0;
+//     }
+//   return new_size;
+// }
+
+size_t LocalImage::create_image_buffer(int width_in, int height_in) {
   int width = this->fixed_width_;
   int height = this->fixed_height_;
   if (this->is_auto_resize_()) {
     width = width_in;
     height = height_in;
     if (this->width_ != width && this->height_ != height) {
-      this->release_();
+      this->free_image_buffer_();
     }
   }
+
   size_t new_size = this->get_buffer_size_(width, height);
-  if (this->buffer_) {
+  if ((this->buffer_) && (new_size == this->get_buffer_size_())) {
     // Buffer already allocated => no need to resize
     return new_size;
   }
+
   ESP_LOGD(TAG, "Allocating new buffer of %zu bytes", new_size);
   this->buffer_ = this->allocator_.allocate(new_size);
   if (this->buffer_ == nullptr) {
@@ -126,9 +140,11 @@ size_t LocalImage::resize_(int width_in, int height_in) {
     this->last_error_ = ErrorCode::NO_MEM;
     return 0;
   }
+
   this->buffer_width_ = width;
   this->buffer_height_ = height;
   this->width_ = width;
+  this->height_ = height;
   ESP_LOGV(TAG, "New size: (%d, %d)", width, height);
   return new_size;
 }
@@ -143,8 +159,8 @@ void LocalImage::load_image() {
   //
   //  If free memory from previous loading. if any.
   //
-  if (this->buffer_) {
-    this->release_();
+  if (this->source_buffer_) {
+    this->free_source_buffer_();
   }
 
   ESP_LOGD(TAG, "Loading image from file : %s", this->path_.c_str());
@@ -178,7 +194,7 @@ void LocalImage::load_image() {
   read_bytes = file->read(this->source_buffer_, this->source_size_);
   if (file->error() != 0) {
     ESP_LOGE(TAG, "Error reading file %s : %s", path_.c_str(), this->provider_->error_str());
-    this->free_source_mem();
+    this->free_source_buffer_();
     return;
   }
   delete file;  // ???
@@ -212,13 +228,14 @@ void LocalImage::load_image() {
   if (!this->decoder_) {
     ESP_LOGE(TAG, "Could not instantiate decoder. Image format unsupported: %d", this->format_);
     this->last_error_ = ErrorCode::DECODER_NOT_INIT;
-    this->free_source_mem();
+    this->free_source_buffer_();
     return;
   }
+
   if (this->decoder_->prepare(read_bytes) < 0) {
     ESP_LOGE(TAG, "Error when prepare decoder.");
     this->last_error_ = ErrorCode::DECODER_NOT_PREPARE;
-    this->free_source_mem();
+    this->free_source_buffer_();
     return;
   }
 
@@ -238,7 +255,7 @@ void LocalImage::load_image() {
     ESP_LOGD(TAG, "Image fully loaded, read %zu bytes, width/height = %d/%d", fed, this->width_, this->height_);
   }
 
-  this->free_source_mem();
+  this->free_source_buffer_();
 }
 
 /**********************************************************************************************

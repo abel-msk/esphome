@@ -68,45 +68,6 @@ class LocalImage : public Component, public image::Image {
   void draw(int x, int y, display::Display *display, Color color_on, Color color_off) override;
 
   /**
-   * @brief Set the image that needs to be shown as long as the downloaded image
-   *  is not available.
-   *
-   * @param placeholder Pointer to the (@link Image) to show as placeholder.
-   */
-  void set_placeholder(image::Image *placeholder) { this->placeholder_ = placeholder; }
-
-  void add_on_finished_callback(std::function<void()> &&callback);
-  void add_on_error_callback(std::function<void(uint8_t)> &&callback);
-
-  /**
-   * @brief Load image data from file to memory and decode to BMP format.
-   *
-   */
-  void load_image();
-
- private:
-  /**
-   * Release the buffer storing the image. The image will need to be downloaded again
-   * to be able to be displayed.
-   */
-  void release_();
-
-  /**
-   * @brief  When loading finished release  buffers for used for prepare image
-   *
-   */
-  void free_source_mem();
-
-  RAMAllocator<uint8_t> allocator_{};
-
-  uint32_t get_buffer_size_() const { return get_buffer_size_(this->buffer_width_, this->buffer_height_); }
-  int get_buffer_size_(int width, int height) const { return (this->get_bpp() * width + 7u) / 8u * height; }
-
-  int get_position_(int x, int y) const { return (x + y * this->buffer_width_) * this->get_bpp() / 8; }
-
-  ESPHOME_ALWAYS_INLINE bool is_auto_resize_() const { return this->fixed_width_ == 0 || this->fixed_height_ == 0; }
-
-  /**
    * @brief Resize the image buffer to the requested dimensions.
    *
    * The buffer will be allocated if not existing.
@@ -119,7 +80,46 @@ class LocalImage : public Component, public image::Image {
    * @param height
    * @return 0 if no memory could be allocated, the size of the new buffer otherwise.
    */
-  size_t resize_(int width, int height);
+  size_t create_image_buffer(int width, int height);
+
+  /**
+   * @brief Set the image that needs to be shown as long as the downloaded image
+   *  is not available.
+   *
+   * @param placeholder Pointer to the (@link Image) to show as placeholder.
+   */
+  void set_placeholder(image::Image *placeholder) { this->placeholder_ = placeholder; }
+  void add_on_finished_callback(std::function<void()> &&callback);
+  void add_on_error_callback(std::function<void(uint8_t)> &&callback);
+
+  /**
+   * @brief Load image data from file to memory and decode to BMP format.
+   *
+   */
+  void load_image();
+
+ private:
+  // size_t create_image_buffer_(size_t new_size);
+  /**
+   * Release the buffer storing the image. The image will need to be downloaded again
+   * to be able to be displayed.
+   */
+  void free_image_buffer_();
+
+  /**
+   * @brief  When loading finished release  buffers for used for prepare image
+   *
+   */
+  void free_source_buffer_();
+
+  RAMAllocator<uint8_t> allocator_{};
+
+  uint32_t get_buffer_size_() const { return get_buffer_size_(this->buffer_width_, this->buffer_height_); }
+  int get_buffer_size_(int width, int height) const { return (this->get_bpp() * width + 7u) / 8u * height; }
+
+  int get_position_(int x, int y) const { return (x + y * this->buffer_width_) * this->get_bpp() / 8; }
+
+  ESPHOME_ALWAYS_INLINE bool is_auto_resize_() const { return this->fixed_width_ == 0 || this->fixed_height_ == 0; }
 
   /**
    * @brief Draw a pixel into the buffer.

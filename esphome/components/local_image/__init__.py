@@ -1,7 +1,3 @@
-import logging
-
-import storage
-
 from esphome import automation
 import esphome.codegen as cg
 
@@ -14,6 +10,7 @@ from esphome.components.image import (
     get_image_type_enum,
     get_transparency_enum,
 )
+from esphome.components.storage import FileProvider
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_DITHER,
@@ -28,20 +25,26 @@ from esphome.const import (
 )
 
 AUTO_LOAD = ["image", "storage"]
-DEPENDENCIES = ["display"]
+DEPENDENCIES = ["display", "storage"]
 CODEOWNERS = ["@abel-msk"]
 MULTI_CONF = True
+
+
+# AUTO_LOAD = ["image"]
+# DEPENDENCIES = ["display", "http_request"]
+
 
 CONF_ON_LOAD_FINISHED = "on_load_finished"
 # CONF_ON_ERROR = "on_error"
 CONF_PLACEHOLDER = "placeholder"
 CONF_STORAGE_FS_ID = "storage_id"
+CONF_IMAGE_PATH = "path"
 
-_LOGGER = logging.getLogger(__name__)
+# _LOGGER = logging.getLogger(__name__)
 
 local_image_ns = cg.esphome_ns.namespace("local_image")
-
 ImageFormat = local_image_ns.enum("ImageFormat")
+LocalImage = local_image_ns.class_("LocalImage", cg.Component, Image_)
 
 
 class Format:
@@ -92,8 +95,6 @@ IMAGE_FORMATS = {
 }
 IMAGE_FORMATS.update({"JPG": IMAGE_FORMATS["JPEG"]})
 
-LocalImage = local_image_ns.class_("LocalImage", cg.Component, Image_)
-
 # Actions
 SetPathAction = local_image_ns.class_(
     "LocalImageSetPathAction", automation.Action, cg.Parented.template(LocalImage)
@@ -133,8 +134,8 @@ LOCAL_IMAGE_SCHEMA = IMAGE_SCHEMA.extend(
 ).extend(
     {
         cv.Required(CONF_ID): cv.declare_id(LocalImage),
-        cv.Required(CONF_STORAGE_FS_ID): cv.use_id(storage.FileProvider),
-        cv.Required(CONF_PATH): cv.string,
+        cv.Required(CONF_STORAGE_FS_ID): cv.use_id(FileProvider),
+        cv.Required(CONF_IMAGE_PATH): cv.string,
         cv.Required(CONF_FORMAT): cv.one_of(*IMAGE_FORMATS, upper=True),
         cv.Optional(CONF_PLACEHOLDER): cv.use_id(Image_),
         cv.Optional(CONF_ON_LOAD_FINISHED): automation.validate_automation(
@@ -228,11 +229,15 @@ async def to_code(config):
     )
     await cg.register_component(var, config)
 
+    # fp_id = config.get(CONF_STORAGE_FS_ID)
+    # fp = await cg.get_variable(fp_id)
+    # cg.add(var.set_storage(fp))
+
     file_provider = await cg.get_variable(config[CONF_STORAGE_FS_ID])
     cg.add(var.set_storage(file_provider))
 
-    path = await cg.get_variable(config[CONF_PATH])
-    cg.add(var.set_path(path))
+    # path = await cg.get_variable(config[CONF_IMAGE_PATH])
+    cg.add(var.set_path(config[CONF_IMAGE_PATH]))
 
     if placeholder_id := config.get(CONF_PLACEHOLDER):
         placeholder = await cg.get_variable(placeholder_id)

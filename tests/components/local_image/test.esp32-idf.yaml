@@ -1,0 +1,7 @@
+substitutions:
+  sdmmc_cmd_pin: 4
+  sdmmc_clk_pin: 32
+  sdmmc_mode_1bit: true
+  sdmmc_data0_pin: 16
+
+<<: !include common-esp32.yaml

@@ -1,0 +1,13 @@
+sdmmc:
+  id: storage_1
+  cmd_pin: $sdmmc_cmd_pin
+  clk_pin: $sdmmc_clk_pin
+  mode_1bit: $sdmmc_mode_1bit
+  data0_pin: $sdmmc_data0_pin
+
+local_image:
+  id: img_1
+  storage_id: storage_1
+  path: "/bg/imag1.png"
+  format: PNG
+  type: RGB565

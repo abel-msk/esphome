@@ -50,7 +50,7 @@ template<typename... Ts> class LocalImageReloadAction : public Action<Ts...> {
 template<typename... Ts> class LocalImageReleaseAction : public Action<Ts...> {
  public:
   LocalImageReleaseAction(LocalImage *parent) : parent_(parent) {}
-  void play(Ts... x) override { this->parent_->release(); }
+  void play(Ts... x) override { this->parent_->free_image_buffer_(); }
 
  protected:
   LocalImage *parent_;
