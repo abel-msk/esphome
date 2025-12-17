@@ -36,13 +36,10 @@ void SdMMC::setup() {
  *
  */
 void SdMMC::update() {
-  ESP_LOGD(TAG, "FS Mounted %s", fs_ != NULL ? "TRUE" : "FALSE");
-
-#ifdef DO_CARD_TEST
-  this->fat_test();
-#endif
-
   if (fs_ != NULL) {
+#ifdef DO_CARD_TEST
+    this->fat_test();
+#endif
     card_status_ = this->mmc_io_->get_disk_status();
     if (card_status_ != SdCardStatus::RET_STATUS_OK) {
       this->mmc_io_->unmount();
@@ -56,7 +53,7 @@ void SdMMC::update() {
     card_status_ = this->mmc_io_->init_card();
     if (card_status_ == SdCardStatus::RET_STATUS_OK) {
       fs_ = this->mmc_io_->mount(mount_point_);
-      ESP_LOGD(TAG, "Card Present. FS Mounted ? %s", fs_ != NULL ? "TRUE" : "FALSE");
+      ESP_LOGD(TAG, "Card Present. FS Mounted %s", fs_ != NULL ? "TRUE" : "FALSE");
     }
   }
 }
