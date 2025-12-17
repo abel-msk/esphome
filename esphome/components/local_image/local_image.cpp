@@ -79,7 +79,7 @@ void LocalImage::dump_config() {
 
   ESP_LOGCONFIG(TAG, "   Width: %d", this->get_width());
   ESP_LOGCONFIG(TAG, "   Height: %d", this->get_height());
-  ESP_LOGCONFIG(TAG, "   Path: %d", this->path_.c_str());
+  ESP_LOGCONFIG(TAG, "   Path: %s", this->path_.c_str());
 };
 
 void LocalImage::setup() {
