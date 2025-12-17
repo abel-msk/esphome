@@ -50,19 +50,18 @@ LocalImage::LocalImage(int width, int height, ImageFormat format, ImageType type
 
 void LocalImage::dump_config() {
   ESP_LOGCONFIG(TAG, "LocalImage:");
-  // switch (format_) {
-  //   case JPEG:
-  //     ESP_LOGCONFIG(TAG, "   Format: %s", "JPEG");
-  //     break;
-  //   case PNG:
-  //     ESP_LOGCONFIG(TAG, "   Format: %s", "PNG");
-  //     break;
-  //   case BMP:
-  //     ESP_LOGCONFIG(TAG, "   Format: %s", "BMP");
-  //   default:
-  //     ESP_LOGCONFIG(TAG, "   Format: %s", "AUTO");
-  // }
-
+  switch (format_) {
+    case JPEG:
+      ESP_LOGCONFIG(TAG, "   Format: %s", "JPEG");
+      break;
+    case PNG:
+      ESP_LOGCONFIG(TAG, "   Format: %s", "PNG");
+      break;
+    case BMP:
+      ESP_LOGCONFIG(TAG, "   Format: %s", "BMP");
+    default:
+      ESP_LOGCONFIG(TAG, "   Format: %s", "AUTO");
+  }
   switch (this->get_type()) {
     case ImageType::IMAGE_TYPE_BINARY:
       ESP_LOGCONFIG(TAG, "   Type: %s", "BINARY");
