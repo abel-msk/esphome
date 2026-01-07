@@ -3,20 +3,19 @@
 #include "esphome/core/gpio.h"
 #include "esphome/core/log.h"
 #include "esphome/components/spi/spi.h"
-#include "esphome/components/storage/storage.h"
+#include "esphome/components/storage/RawStorage.h"
 
 namespace esphome {
 namespace sdspi {
 
-class SDSPI : public storage::Storage,
-              public PollingComponent,
+class SDSPI : public storage::RawStorage,
+              public Component,
               public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                     spi::DATA_RATE_20MHZ> {
  public:
   void setup() override;
   void loop() override;
   void dump_config() override;
-  void update() override;
 
   bool state_init() override { return is_init_; };
   bool state_media() override { return is_media_; };
