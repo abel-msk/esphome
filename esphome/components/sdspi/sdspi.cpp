@@ -11,7 +11,6 @@ namespace esphome {
 namespace sdspi {
 
 using namespace storage;
-using storage::StorageIntState;
 
 static const char *const TAG = "sdspi";
 #ifndef USE_SD_CRC
@@ -111,58 +110,20 @@ class Timeout {
 //
 void SDSPI::dump_config() {
   ESP_LOGCONFIG(TAG, "SDSPI storage:");
-  LOG_UPDATE_INTERVAL(this);
-  LOG_PIN("  CD pin", this->get_cd_pin());
+  LOG_PIN("  CS Pin:", this->cs_);
   ESP_LOGCONFIG(TAG, "  Data rate: %dMHz", (unsigned) (this->data_rate_ / 1000000));
 }
 //------------------------------------------------------------------------------
 void SDSPI::setup() {
-  this->init_media_state_interrupt();
   this->spi_setup();
   this->initialize();
 }
 //------------------------------------------------------------------------------
-void SDSPI::loop() { set_media(this->media_interrupt_state()); }
-
-//------------------------------------------------------------------------------
-//
-//    Manual update card presence  if interrupt not attached
-//
-void SDSPI::update() {
-  if (this->media_interrupt_state() == StorageIntState::MEDIA_UNUSED) {
-    //   Manual  check is media present by retrive status
-    SdStatus_t st;
-    if (this->read_status(&st)) {
-      this->set_media(StorageIntState::MEDIA_PRESENT);
-    } else
-      this->set_media(StorageIntState::MEDIA_ABSENT);
-  }
-}
-
-//------------------------------------------------------------------------------
-//
-//   Perform required actions if media state changed
-//
-void SDSPI::set_media(storage::StorageIntState interrupt_state) {
-  if (interrupt_state == StorageIntState::MEDIA_UNUSED) {
-    return;
-  }
-  if (is_media_ && (interrupt_state == StorageIntState::MEDIA_ABSENT)) {
-    this->reset(false);
-    is_media_ = false;
-  } else if (!is_media_ && (interrupt_state == StorageIntState::MEDIA_PRESENT)) {
-    // is_init_ = false;
-    if (!this->initialize()) {
-      ESP_LOGE(TAG, "Initialization error. Error=%d", last_err_);
-    }
-    is_media_ = true;    // for preventing init loop
-    is_remount_ = true;  // indicat media changes  need mount again
-  }
-}
+void SDSPI::loop() {}
 
 //------------------------------------------------------------------------------
 bool SDSPI::initialize() {
-  // Check if card already inited
+  // Check if card already initilized
   last_err_ = 0;
 
   if (is_init_) {
@@ -181,11 +142,11 @@ bool SDSPI::initialize() {
   }
 
   // must supply min of 74 clock cycles with CS high.
-  this->disable();  // digital_write(true)   //     spiUnselect();
+  this->disable();
   for (uint8_t i = 0; i < 10; i++) {
     this->write_byte(0XFF);
   }
-  this->enable();  // digital_write(false)  //     spiSelect();
+  this->enable();
 
   ESP_LOGV(TAG, "Send SPI command");
   // Command to go idle in SPI mode
@@ -266,9 +227,13 @@ bool SDSPI::initialize() {
 
 //------------------------------------------------------------------------------
 void SDSPI::reset(bool hard = false) {
+  if (hard) {
+    sync();
+  }
   this->disable();
   is_init_ = false;
   is_media_ = false;
+  is_remount_ = true;
 }
 
 //------------------------------------------------------------------------------
@@ -289,9 +254,6 @@ bool SDSPI::spi_start() {  //  spiStart
   is_active_ = true;
   this->enable();
   this->write_byte(0XFF);
-  // uint8_t dummy_byte = this->read_byte();
-  // ESP_LOGD(TAG,"SPI check. reply=%02X",dummy_byte);
-  // this->disable();
   return is_active_;
 }
 
@@ -299,17 +261,16 @@ bool SDSPI::spi_start() {  //  spiStart
 
 void SDSPI::spi_stop() {  //    spiStop
   if (is_active_) {
-    // this->disable();
-    // Insure MISO goes to low Z.
     this->write_byte(0XFF);
     this->disable();
     is_active_ = false;
   }
+  state_ = IDLE_STATE;
 }
 
 //------------------------------------------------------------------------------
 
-bool SDSPI::reset_io() {  // syncDevice
+bool SDSPI::sync() {  // syncDevice
   if (state_ == WRITE_STATE) {
     return this->write_stop();
   }
@@ -329,7 +290,7 @@ uint8_t SDSPI::spi_app_command(uint8_t cmd, uint32_t arg) {
 //------------------------------------------------------------------------------
 
 uint8_t SDSPI::spi_command(uint8_t cmd, uint32_t arg) {  //  cardCommand
-  if (!this->reset_io()) {
+  if (!this->sync()) {
     return 0XFF;
   }
   // select card
@@ -428,6 +389,7 @@ bool SDSPI::write_data(uint8_t token, const uint8_t *src) {
   if ((response_ & DATA_RES_MASK) != DATA_RES_ACCEPTED) {
     last_err_ = SD_CARD_ERROR_WRITE_DATA;
     this->spi_stop();
+    reset();
     return false;
   }
   return true;
@@ -440,6 +402,7 @@ bool SDSPI::write_data(const uint8_t *src) {
   if (!this->wait(SD_WRITE_TIMEOUT)) {
     last_err_ = SD_CARD_ERROR_WRITE_TIMEOUT;
     this->spi_stop();
+    reset();
     return false;
   }
   if (!this->write_data(WRITE_MULTIPLE_TOKEN, src)) {
@@ -533,12 +496,6 @@ bool SDSPI::read_stop() {  // readStop
 
 //------------------------------------------------------------------------------
 
-// uint8_t SDSPI::read_data(uint8_t *dst) {
-//   return this->read_data(dst, this->sector_size());
-// }
-
-//------------------------------------------------------------------------------
-
 uint8_t SDSPI::read_data(uint8_t *dst, size_t count) {
 #if USE_SD_CRC
   uint16_t crc;
@@ -550,6 +507,7 @@ uint8_t SDSPI::read_data(uint8_t *dst, size_t count) {
     if (timeout.timed_out()) {
       last_err_ = SD_CARD_ERROR_READ_TIMEOUT;
       this->spi_stop();
+      reset();
       return false;
     }
   }
@@ -557,16 +515,11 @@ uint8_t SDSPI::read_data(uint8_t *dst, size_t count) {
   if (response_ != DATA_START_SECTOR) {
     last_err_ = SD_CARD_ERROR_READ_TOKEN;
     this->spi_stop();
+    reset();
     return false;
   }
 
   this->read_array(dst, count);
-
-  // // transfer data
-  // if ((m_status = read_array(dst, count))) {
-  //   error(SD_CARD_ERROR_DMA);
-  //   goto fail;
-  // }
 
 #if USE_SD_CRC
   // get crc
@@ -574,6 +527,7 @@ uint8_t SDSPI::read_data(uint8_t *dst, size_t count) {
   if (crc != crc_ccitt(dst, count)) {
     last_err_ = SD_CARD_ERROR_READ_CRC;
     this->spi_stop();
+    reset();
     return false;
   }
 #else   // USE_SD_CRC
@@ -582,7 +536,6 @@ uint8_t SDSPI::read_data(uint8_t *dst, size_t count) {
   this->transfer_byte(0xFF);
 #endif  // USE_SD_CRC
 
-  // this->spi_stop(); // ????
   return true;
 }
 
@@ -651,6 +604,7 @@ bool SDSPI::read_register(uint8_t cmd, void *buf) {
   if (spi_command(cmd, 0)) {
     last_err_ = SD_CARD_ERROR_READ_REG;
     spi_stop();
+    reset();
     return false;
   }
   if (cmd == CMD58) {
@@ -660,10 +614,6 @@ bool SDSPI::read_register(uint8_t cmd, void *buf) {
   }
   spi_stop();
   return response_ != 0;
-  // if (!response_) {
-  //   return false;
-  // }
-  // return true;
 }
 
 //------------------------------------------------------------------------------
@@ -694,7 +644,8 @@ bool SDSPI::erase(uint32_t first_sector, uint32_t last_sector) {
   }
   // check for single sector erase
   if (!csd.v1.erase_blk_en) {
-    // erase size mask
+    // erase size mask  //
+    // https://problemkaputt.de/gbatek-dsi-sd-mmc-protocol-csd-register-128bit-card-specific-data-version-2-0.htm
     uint8_t m = (csd.v1.sector_size_high << 1) | csd.v1.sector_size_low;
     if ((first_sector & m) != 0 || ((last_sector + 1) & m) != 0) {
       // error card can't erase specified area
@@ -738,6 +689,7 @@ bool SDSPI::is_busy() {
   if (!spi_active) {
     this->spi_start();
   }
+  // TODO: Need to check
   bool rtn = 0XFF != this->transfer_byte(0xFF);
   if (!spi_active) {
     this->spi_stop();
@@ -775,7 +727,7 @@ uint8_t SDSPI::ioctl(uint8_t cmd, void *buff) {
 
   switch (cmd) {
     case CMD_CTRL_SYNC: {
-      if (this->reset_io()) {
+      if (this->sync()) {
         return RC_OK;
       } else {
         ESP_LOGE(TAG, "ioctl error. Cmd CTRL_SYNC, error %d", last_err_);

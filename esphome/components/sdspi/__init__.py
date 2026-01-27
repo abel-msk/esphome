@@ -9,7 +9,7 @@ AUTO_LOAD = ["storage"]
 DEPENDENCIES = ["spi"]
 
 sdspi_ns = cg.esphome_ns.namespace("sdspi")
-sdspi = sdspi_ns.class_("SDCardSPI", cg.Component, storage.RawStorage)
+sdspi = sdspi_ns.class_("SDSPI", cg.Component, storage.RawStorage)
 
 
 CONFIG_SCHEMA = cv.Schema({cv.GenerateID(): cv.declare_id(sdspi)}).extend(

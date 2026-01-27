@@ -3,7 +3,7 @@
 #include "esphome/core/gpio.h"
 #include "esphome/core/log.h"
 #include "esphome/components/spi/spi.h"
-#include "esphome/components/storage/RawStorage.h"
+#include "esphome/components/storage/raw_storage.h"
 
 namespace esphome {
 namespace sdspi {
@@ -34,20 +34,6 @@ class SDSPI : public storage::RawStorage,
   void reset(bool hard) override;
 
   /***********************************************************************************
-   * @brief Start spi transaction Down CS pin
-   *
-   * @return true
-   * @return false
-   */
-  bool spi_start();
-
-  /***********************************************************************************
-   * @brief  Stop spi interaction. Up CS pin
-   *
-   */
-  void spi_stop();
-
-  /***********************************************************************************
    * @brief  Return if sdcard redy for io
    *
    * @return true
@@ -64,47 +50,12 @@ class SDSPI : public storage::RawStorage,
   bool is_ready();
 
   /***********************************************************************************
-   * @brief Send sdcard command (single token)
-   *
-   * @param cmd
-   * @param arg
-   * @return uint8_t
-   */
-  uint8_t spi_command(uint8_t cmd, uint32_t arg);
-
-  /***********************************************************************************
-   * @brief  Send sdcard command after app token
-   *
-   * @param cmd
-   * @param arg
-   * @return uint8_t
-   */
-  uint8_t spi_app_command(uint8_t cmd, uint32_t arg);
-
-  /***********************************************************************************
-   * @brief Stop reading and writing
+   * @brief Wait for read or write finish
    *
    * @return true
    * @return false
    */
-  bool reset_io();
-
-  /***********************************************************************************
-   * @brief Wait time in ms
-   *
-   * @param ms
-   * @return true
-   * @return false
-   */
-  bool wait(uint16_t ms);
-
-  /***********************************************************************************
-   * @brief Stop writing
-   *
-   * @return true
-   * @return false
-   */
-  bool write_stop();
+  bool sync();
 
   /***********************************************************************************
    *
@@ -112,34 +63,6 @@ class SDSPI : public storage::RawStorage,
    * @return 0 - SD V1, 1 - SD V2, or 3 - SDHC/SDXC.
    */
   uint8_t get_type() const { return card_type_; };
-
-  /***********************************************************************************
-   * @brief Prepare for write  sectors
-   *
-   * @param sector
-   * @return true
-   * @return false
-   */
-  bool write_start(uint32_t sector);
-
-  /***********************************************************************************
-   * @brief Write 512 data block with token
-   *
-   * @param token
-   * @param src
-   * @return true
-   * @return false
-   */
-  bool write_data(uint8_t token, const uint8_t *src);
-
-  /***********************************************************************************
-   * @brief Write 512 data block
-   *
-   * @param src
-   * @return true
-   * @return false
-   */
-  bool write_data(const uint8_t *src);
 
   /***********************************************************************************
    * @brief Write multiple 512 byte sectors to an SD card.
@@ -151,61 +74,6 @@ class SDSPI : public storage::RawStorage,
    * @return false
    */
   uint8_t write_sectors(const uint8_t *buffer, uint32_t sector, unsigned int count) override;
-  // bool write_sectors(uint32_t sector, const uint8_t *src, size_t ns) override;
-
-  /***********************************************************************************
-   * @brief Write single sector
-   *
-   * @param sector
-   * @param src
-   * @return true
-   * @return false
-   */
-  bool write_sector(uint32_t sector, const uint8_t *src);
-
-  /***********************************************************************************
-   * @brief Prepare to read sectors
-   *
-   * @param sector
-   * @return true
-   * @return false
-   */
-  bool read_start(uint32_t sector);
-
-  /***********************************************************************************
-   * @brief Stop reading multy sectors
-   *
-   * @return true
-   * @return false
-   */
-  bool read_stop();
-
-  /***********************************************************************************
-   * @brief Read byte
-   *
-   * @param dst
-   * @return uint8_t
-   */
-  uint8_t read_data(uint8_t *dst);
-
-  /***********************************************************************************
-   * @brief Read data block
-   *
-   * @param dst
-   * @param count
-   * @return uint8_t
-   */
-  uint8_t read_data(uint8_t *dst, size_t count);
-
-  /***********************************************************************************
-   * @brief Read single sector
-   *
-   * @param sector
-   * @param dst
-   * @return true
-   * @return false
-   */
-  bool read_sector(uint32_t sector, uint8_t *dst);
 
   /***********************************************************************************
    * @brief Read multiple 512 byte sectors from an SD card.
@@ -216,7 +84,6 @@ class SDSPI : public storage::RawStorage,
    * @return
    */
   uint8_t read_sectors(uint8_t *buffer, uint32_t sector, unsigned int count) override;
-  // bool read_sectors(uint32_t sector, uint8_t *dst, size_t ns) override;
 
   /***********************************************************************************
    * @brief Read 64 bytes status block
@@ -246,30 +113,11 @@ class SDSPI : public storage::RawStorage,
   uint32_t sector_count();
 
   /***********************************************************************************
-   * @brief
+   * @brief  Return sector size
    *
    * @return uint32_t
    */
   uint32_t sector_size();
-
-  /***********************************************************************************
-   * @brief Read a card's CID register. The CID contains card identification
-   *  information such as Manufacturer ID, Product name, Product serial
-   *  number and Manufacturing date.
-   * @param cid cid pointer to area for returned data
-   * @return true
-   * @return false
-   */
-  // bool read_cid(cid_t *cid) { return this->read_register(CMD10, cid); };
-
-  /***********************************************************************************
-   * @brief Read a card's CSD register. The CSD contains Card-Specific Data that
-   * provides information regarding access to the card's contents.
-   * @param csd
-   * @return true
-   * @return false
-   */
-  // bool read_csd(csd_t *csd) { return this->read_register(CMD9, csd); };
 
   /***********************************************************************************
    *
@@ -306,24 +154,141 @@ class SDSPI : public storage::RawStorage,
    */
   uint8_t error() override { return last_err_; };
 
-  /***********************************************************************************
-   * @brief   Return is media plesent bool value
-   *
-   * @return
-   */
-  // bool is_media() override;
-
-  /***********************************************************************************
-   * @brief   Return drives status
-   *
-   * @return uint8_t  status plags
-   */
-  // uint8_t state() override;
-
+  //-------------------------------------------------------------------------------------
+  //-------------------------------------------------------------------------------------
  private:
+  /***********************************************************************************
+   * @brief Wait time in ms
+   *
+   * @param ms
+   * @return true
+   * @return false
+   */
+  bool wait(uint16_t ms);
+
+  /***********************************************************************************
+   * @brief Start spi transaction Down CS pin
+   *
+   * @return true
+   * @return false
+   */
+  bool spi_start();
+
+  /***********************************************************************************
+   * @brief  Stop spi interaction. Up CS pin
+   *
+   */
+  void spi_stop();
+
+  /***********************************************************************************
+   * @brief Send sdcard command (single token)
+   *
+   * @param cmd
+   * @param arg
+   * @return uint8_t
+   */
+  uint8_t spi_command(uint8_t cmd, uint32_t arg);
+
+  /***********************************************************************************
+   * @brief  Send sdcard command after app token
+   *
+   * @param cmd
+   * @param arg
+   * @return uint8_t
+   */
+  uint8_t spi_app_command(uint8_t cmd, uint32_t arg);
+
+  /***********************************************************************************
+   * @brief Prepare to read sectors
+   *
+   * @param sector
+   * @return true
+   * @return false
+   */
+  bool read_start(uint32_t sector);
+
+  /***********************************************************************************
+   * @brief Stop reading multy sectors
+   *
+   * @return true
+   * @return false
+   */
+  bool read_stop();
+
+  /***********************************************************************************
+   * @brief Read byte
+   *
+   * @param dst
+   * @return uint8_t
+   */
+  uint8_t read_data(uint8_t *dst);
+
+  /***********************************************************************************
+   * @brief Read data block
+   *
+   * @param dst
+   * @param count
+   * @return uint8_t
+   */
+  uint8_t read_data(uint8_t *dst, size_t count);
+
+  /***********************************************************************************
+   * @brief Read single sector  !!!
+   *
+   * @param sector
+   * @param dst
+   * @return true
+   * @return false
+   */
+  bool read_sector(uint32_t sector, uint8_t *dst);
+
+  /***********************************************************************************
+   * @brief Prepare for write  sectors
+   *
+   * @param sector
+   * @return true
+   * @return false
+   */
+  bool write_start(uint32_t sector);
+
+  /***********************************************************************************
+   * @brief Stop writing
+   *
+   * @return true
+   * @return false
+   */
+  bool write_stop();
+
+  /***********************************************************************************
+   * @brief Write 512 data block with token
+   *
+   * @param token
+   * @param src
+   * @return true
+   * @return false
+   */
+  bool write_data(uint8_t token, const uint8_t *src);
+
+  /***********************************************************************************
+   * @brief Write 512 data block
+   *
+   * @param src
+   * @return true
+   * @return false
+   */
+  bool write_data(const uint8_t *src);
+
+  /***********************************************************************************
+   * @brief Write single sector  !!!
+   *
+   * @param sector
+   * @param src
+   * @return true
+   * @return false
+   */
+  bool write_sector(uint32_t sector, const uint8_t *src);
+
   void set_type_(uint8_t c_type) { card_type_ = c_type; }
-  void reset_card(storage::StorageIntState state);
-  void set_media(storage::StorageIntState state);
   uint8_t state_ = 0;  // IO transaction state  read; write; idle
   uint8_t last_err_ = 0;
   uint8_t response_;
