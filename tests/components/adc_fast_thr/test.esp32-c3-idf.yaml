@@ -1,0 +1,17 @@
+sensor:
+  - id: adc_my_sensor
+    platform: adc_fast_thr
+    pin: GPIO1
+    name: ADC Fast Thr Test sensor
+    update_interval: "1:01"
+    attenuation: 2.5db
+    sampling_mode: max
+    raw: true
+    voltage_divider: 12
+    high_threshold: 11.5
+    low_threshold: 9.5V
+    unit_of_measurement: "V"
+    icon: "mdi:voltage"
+    accuracy_decimals: 2
+    setup_priority: -100
+    force_update: true
